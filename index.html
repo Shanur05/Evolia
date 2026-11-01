@@ -34,6 +34,7 @@ const roles=['Собиратель','Лесоруб','Строитель','Зе�
 const rand=(a,b)=>a+Math.random()*(b-a),pick=a=>a[Math.floor(Math.random()*a.length)],dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function terrain(x,y){let n=Math.sin(x*.31+Math.cos(y*.19))*Math.cos(y*.27)+Math.sin((x+y)*.13)*.5; if((x-38)**2/90+(y-12)**2/30<1.1)return 'water';if(n>.95)return 'rock';if(n>.55)return 'forest';return 'grass'}
 for(let y=0;y<H;y++)for(let x=0;x<W;x++)world.push({x,y,type:terrain(x,y),seed:Math.random()});
+const forestTiles=world.filter(p=>p.type==='forest'&&p.seed>.35),rockTiles=world.filter(p=>p.type==='rock'&&p.seed>.4);
 const tile=(x,y)=>world[y*W+x];
 function iso(x,y){return{x:(x-y)*T,y:(x+y)*T*.5}}
 function center(){return{x:canvas.clientWidth/2+camX,y:canvas.clientHeight*.47+camY}}
@@ -86,12 +87,12 @@ function drawBuilding(b){let s=screen(b.x,b.y),z=scale;if(b.type==='camp'){ctx.f
 }
 function drawAgent(a){let s=screen(a.x,a.y),z=scale;ctx.fillStyle='#17201988';ctx.beginPath();ctx.ellipse(s.x,s.y+2*z,6*z,3*z,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4b3427';ctx.fillRect(s.x-3*z,s.y-10*z,6*z,10*z);ctx.fillStyle=a.color;ctx.beginPath();ctx.arc(s.x,s.y-13*z,5*z,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e1c38b';ctx.beginPath();ctx.arc(s.x,s.y-19*z,4*z,0,Math.PI*2);ctx.fill();ctx.fillStyle='#533b2b';ctx.beginPath();ctx.arc(s.x,s.y-21*z,4.5*z,Math.PI,Math.PI*2);ctx.fill();if(selected===a){ctx.strokeStyle='#f1d88d';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(s.x,s.y-7*z,10*z,15*z,0,0,Math.PI*2);ctx.stroke()} }
 function render(){
- const dpr=Math.min(devicePixelRatio||1,2),w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr)}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const dpr=Math.min(devicePixelRatio||1,matchMedia('(max-width:800px)').matches?1.25:1.5),w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr)}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
  // coordinates use CSS pixels
  for(const p of world){let s=screen(p.x,p.y);if(s.x<-60||s.x>w+60||s.y<-60||s.y>h+60)continue;let col=p.type==='water'?'#426b70':p.type==='forest'?'#416b43':p.type==='rock'?'#657363':'#668b55';diamond(s.x,s.y,2*T*scale, T*scale,col,'#233e2c55');if(p.type==='water'&&p.seed>.86){ctx.strokeStyle='#a0c7bc66';ctx.beginPath();ctx.moveTo(s.x-7*scale,s.y);ctx.lineTo(s.x+6*scale,s.y);ctx.stroke()}}
  // decorative forest trees only every other tile
- for(const p of world)if(p.type==='forest'&&p.seed>.35){let s=screen(p.x,p.y);if(s.x>-30&&s.x<w+30&&s.y>-45&&s.y<h+30)drawTree(p)}
- for(const p of world)if(p.type==='rock'&&p.seed>.4)drawRock(p);
+ for(const p of forestTiles){let s=screen(p.x,p.y);if(s.x>-30&&s.x<w+30&&s.y>-45&&s.y<h+30)drawTree(p)}
+ for(const p of rockTiles)drawRock(p);
  buildings.slice().sort((a,b)=>a.x+a.y-b.x-b.y).forEach(drawBuilding);
  agents.slice().sort((a,b)=>a.x+a.y-b.x-b.y).forEach(drawAgent);
  // tiny labels for selected agent
@@ -135,7 +136,7 @@ canvas.addEventListener('pointermove',e=>{if(drag){let dx=e.clientX-drag.x,dy=e.
 canvas.addEventListener('pointerup',()=>{if(drag&&!drag.moved)drag=null;else drag=null});
 canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(scale*(e.deltaY<0?1.08:.92))},{passive:false});
 setZoom(scale);
-function frame(now){if(!last)last=now;if(!paused&&now-last>800){update();last=now;updateUI()}render();requestAnimationFrame(frame)}
+let lastRender=0;function frame(now){if(!last)last=now;if(now-lastRender>=33){lastRender=now;if(!paused&&now-last>800){update();last=now;updateUI()}render()}requestAnimationFrame(frame)}
 log('Арина собирает ягоды, Борис отправился за древесиной.');updateUI();requestAnimationFrame(frame);
 })();
 </script></body></html>

@@ -36,7 +36,7 @@ function terrain(x,y){let n=Math.sin(x*.31+Math.cos(y*.19))*Math.cos(y*.27)+Math
 for(let y=0;y<H;y++)for(let x=0;x<W;x++)world.push({x,y,type:terrain(x,y),seed:Math.random()});
 const tile=(x,y)=>world[y*W+x];
 function iso(x,y){return{x:(x-y)*T,y:(x+y)*T*.5}}
-function center(){return{x:canvas.width/2+camX,y:canvas.height*.47+camY}}
+function center(){return{x:canvas.clientWidth/2+camX,y:canvas.clientHeight*.47+camY}}
 function screen(x,y){let p=iso(x,y),c=center();return{x:c.x+p.x*scale,y:c.y+p.y*scale}}
 function fromScreen(sx,sy){let c=center(),x=(sx-c.x)/scale,y=(sy-c.y)/scale;return{x:Math.round(x/(2*T)+y/T),y:Math.round(y/T-x/(2*T))}}
 function addBuilding(type,x,y){buildings.push({type,x,y});}

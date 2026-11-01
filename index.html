@@ -42,7 +42,7 @@ function screen(x,y){let p=iso(x,y),c=center();return{x:c.x+p.x*scale,y:c.y+p.y*
 function fromScreen(sx,sy){let c=center(),x=(sx-c.x)/scale,y=(sy-c.y)/scale;return{x:Math.round(x/(2*T)+y/T),y:Math.round(y/T-x/(2*T))}}
 function addBuilding(type,x,y){buildings.push({type,x,y});}
 addBuilding('hut',26,23);addBuilding('hut',29,24);addBuilding('hut',25,26);addBuilding('camp',27,25);
-function spawn(name,x,y,age){agents.push({id:agents.length,name,x,y,tx:x,ty:y,age,gender:Math.random()<.5?'♀':'♂',role:pick(roles),hunger:rand(8,35),energy:rand(45,100),social:rand(35,90),health:100,task:'Осматривается',thought:'Какой большой мир вокруг…',color:pick(['#d5a36c','#c88b67','#e2c18b','#b87c57']),speed:rand(.018,.035),memory:[],family:null});}
+function spawn(name,x,y,age){agents.push({id:agents.length,name,x,y,tx:x,ty:y,age,gender:Math.random()<.5?'♀':'♂',role:pick(roles),hunger:rand(8,35),energy:rand(45,100),social:rand(35,90),health:100,task:'Осматривается',thought:'Какой большой мир вокруг…',color:pick(['#d5a36c','#c88b67','#e2c18b','#b87c57']),speed:rand(.018,.035),taskUntil:0,workDone:0,memory:[],family:null});}
 for(let i=0;i<12;i++){let x=25+rand(-4,4),y=24+rand(-3,3);spawn(names[i],x,y,Math.floor(rand(18,48)));}
 function log(msg){events.unshift({t:tick,msg});if(events.length>35)events.pop();renderLog()}
 function renderLog(){$('log').innerHTML=events.slice(0,10).map(e=>'<div class="event"><time>Д'+(1+Math.floor(e.t/60))+'</time>'+e.msg+'</div>').join('')}
@@ -50,27 +50,29 @@ log('Первые семьи обустраивают долину у реки.'
 function nearest(a,pred){let best=null,bd=1e9;for(const p of world){if(pred(p)){let d=(p.x-a.x)**2+(p.y-a.y)**2;if(d<bd){bd=d;best=p}}}return best}
 function moveTo(a,p){if(p){a.tx=p.x;a.ty=p.y}}
 function chooseTask(a){
- if(a.hunger>72){a.task='Ищет пищу';a.thought='Живот урчит. Нужно найти что-нибудь съедобное.';let p=nearest(a,p=>p.type==='forest'||p.type==='grass');moveTo(a,p);return}
+ a.taskUntil=tick+Math.floor(rand(12,22));a.workDone=0;
+ if(a.hunger>72){a.task='Ищет пищу';a.thought='Живот урчит. Нужно найти ягоды.';moveTo(a,nearest(a,p=>p.type==='forest'));return}
  if(a.energy<18){a.task='Отдыхает';a.thought='Пора передохнуть у костра.';let b=pick(buildings);moveTo(a,b||{x:27,y:25});return}
  if(a.social<18){let other=pick(agents.filter(o=>o!==a));if(other){a.task='Ищет компанию';a.thought='Хочется поговорить с кем-нибудь.';moveTo(a,other)}return}
- let r=Math.random();
- if(r<.34){a.task='Собирает ягоды';a.thought='В лесу наверняка есть ягоды.';moveTo(a,nearest(a,p=>p.type==='forest'))}
- else if(r<.58){a.task='Рубит дерево';a.thought='Поселению нужны материалы для новых домов.';moveTo(a,nearest(a,p=>p.type==='forest'))}
- else if(r<.77){a.task='Исследует окрестности';a.thought='Интересно, что находится за холмом…';moveTo(a,{x:rand(5,W-5),y:rand(5,H-5)})}
- else if(r<.9){a.task='Общается';a.thought='Хорошо бы узнать новости племени.';let o=pick(agents.filter(o=>o!==a));moveTo(a,o)}
- else{a.task='Помогает поселению';a.thought='Вместе мы сможем построить что-то большое.';let b=pick(buildings);moveTo(a,b||{x:27,y:25})}
+ const r=Math.random();
+ if(a.role==='Лесоруб'||r<.25){a.task='Рубит дерево';a.thought='Заготавливаю древесину для поселения.';moveTo(a,nearest(a,p=>p.type==='forest'))}
+ else if(a.role==='Собиратель'||r<.48){a.task='Собирает ягоды';a.thought='Ищу пищу для жителей.';moveTo(a,nearest(a,p=>p.type==='forest'))}
+ else if(a.role==='Земледелец'||r<.65){a.task='Работает на поле';a.thought='Забочусь о запасах еды.';let farm=buildings.find(b=>b.type==='farm');moveTo(a,farm||{x:27,y:25})}
+ else if(a.role==='Строитель'||r<.78){a.task='Работает у поселения';a.thought='Помогаю обустраивать наше поселение.';let b=pick(buildings);moveTo(a,b||{x:27,y:25})}
+ else if(r<.9){a.task='Исследует окрестности';a.thought='Разведаю земли вокруг.';moveTo(a,{x:rand(5,W-5),y:rand(5,H-5)})}
+ else{a.task='Общается';a.thought='Пора узнать, как дела у соседей.';let o=pick(agents.filter(o=>o!==a));if(o)moveTo(a,o)}
 }
 function update(){
  tick++;for(const a of agents){a.hunger=Math.min(100,a.hunger+.18);a.energy=Math.max(0,a.energy-.07);a.social=Math.max(0,a.social-.06);
  if(Math.hypot(a.tx-a.x,a.ty-a.y)>.18){let dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy);a.x+=dx/d*a.speed*2.5;a.y+=dy/d*a.speed*2.5;a.energy=Math.max(0,a.energy-.025)}
  else{
-  if(a.task==='Собирает ягоды'||a.task==='Ищет пищу'){if(tick%5===0){stock.food+=2;a.hunger=Math.max(0,a.hunger-18);a.thought='Нашёл немного еды. Надо поделиться с остальными.'}}
-  if(a.task==='Рубит дерево'&&tick%7===0){stock.wood+=2;a.thought='Ещё немного древесины — и будет новый дом.'}
-  if(a.task==='Отдыхает'){a.energy=Math.min(100,a.energy+1.3)}
+  if(a.task==='Собирает ягоды'||a.task==='Ищет пищу'){if(tick%5===0){stock.food+=2;a.hunger=Math.max(0,a.hunger-18);a.workDone++;a.thought='Собрал еду для поселения.'}}
+  if(a.task==='Рубит дерево'&&tick%7===0){stock.wood+=2;a.workDone++;a.thought='Заготовил древесину. Ещё немного — и будет новый дом.'}
+  if(a.task==='Отдыхает'){a.energy=Math.min(100,a.energy+1.3);a.workDone++}
   if(a.task==='Общается'||a.task==='Ищет компанию'){a.social=Math.min(100,a.social+1.2);let other=agents.find(o=>o!==a&&dist(a,o)<2);if(other&&tick%8===0){a.thought='Мы говорили о будущем нашего поселения.';other.thought='Мне нравится беседовать с '+a.name+'.';other.social=Math.min(100,other.social+8)}}
-  if(a.task==='Исследует окрестности'&&tick%12===0){stock.knowledge++;a.thought='Я запомню это место. Мир гораздо больше нашей долины.'}
-  if(a.task==='Помогает поселению'&&tick%10===0){stock.food++;stock.wood++}
-  if(tick%3===0)chooseTask(a);
+  if(a.task==='Исследует окрестности'&&tick%12===0){stock.knowledge++;a.workDone++;a.thought='Открыл новые знания для племени.'}
+  if((a.task==='Помогает поселению'||a.task==='Работает у поселения'||a.task==='Работает на поле')&&tick%10===0){stock.food++;stock.wood++;a.workDone++;}
+  if(tick>=a.taskUntil)chooseTask(a);
  }
  if(a.hunger>95){a.health=Math.max(0,a.health-.15);if(a.health<30)a.thought='Мне очень плохо… нужна помощь.'}
  if(a.health<=0){a.health=100;a.hunger=50;log(a.name+' тяжело заболел, но племя помогло ему выжить.')}

@@ -106,7 +106,10 @@ function updateUI(){
  $('agents').querySelectorAll('.agent').forEach(el=>el.onclick=()=>selectAgent(agents.find(a=>a.id==el.dataset.id)));
  if(selected){$('detail').innerHTML='<strong>'+selected.name+'</strong> · '+selected.age+' лет · '+selected.role+'<br>Занятие: '+selected.task+'<br>Голод: '+Math.round(selected.hunger)+'% · Энергия: '+Math.round(selected.energy)+'% · Общение: '+Math.round(selected.social)+'%<br><br><strong>Мысли:</strong> «'+selected.thought+'»'}
 }
-function selectAgent(a){selected=a;updateUI()}\nfunction setZoom(next){scale=Math.max(.45,Math.min(2.2,next));$('zoomLevel').textContent=Math.round(scale*100)+'%';$('zoomOut').disabled=scale<=.45;$('zoomIn').disabled=scale>=2.2}\n$('zoomIn').addEventListener('click',()=>setZoom(scale*1.15));\n$('zoomOut').addEventListener('click',()=>setZoom(scale/1.15));
+function selectAgent(a){selected=a;updateUI()}
+function setZoom(next){scale=Math.max(.45,Math.min(2.2,next));$('zoomLevel').textContent=Math.round(scale*100)+'%';$('zoomOut').disabled=scale<=.45;$('zoomIn').disabled=scale>=2.2}
+$('zoomIn').addEventListener('click',()=>setZoom(scale*1.15));
+$('zoomOut').addEventListener('click',()=>setZoom(scale/1.15));
 function build(type){const costs={hut:{wood:12},farm:{wood:8},store:{wood:15},camp:{wood:5}}[type];if(stock.wood<costs.wood){log('Не хватает древесины для строительства.');return}stock.wood-=costs.wood;let x=27+rand(-4,4),y=25+rand(-3,3);addBuilding(type,Math.round(x),Math.round(y));log(({hut:'Построено новое жилище.',farm:'Племя разбило небольшое поле.',store:'Построен общий склад.',camp:'Устроен новый костёр.'})[type]);buildMode=null;$('modehint').textContent='Режим: наблюдение';document.querySelectorAll('[data-build]').forEach(b=>b.classList.remove('active'));updateUI()}
 document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{build(b.dataset.build);});
 $('cancel').onclick=()=>{buildMode=null;$('modehint').textContent='Режим: наблюдение';document.querySelectorAll('[data-build]').forEach(b=>b.classList.remove('active'))};
@@ -115,7 +118,8 @@ canvas.addEventListener('click',e=>{if(drag&&drag.moved){drag=null;return}let r=
 canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,cx:camX,cy:camY,moved:false};canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(drag){let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;camX=drag.cx+dx;camY=drag.cy+dy}});
 canvas.addEventListener('pointerup',()=>{if(drag&&!drag.moved)drag=null;else drag=null});
-canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(scale*(e.deltaY<0?1.08:.92))},{passive:false});\nsetZoom(scale);
+canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(scale*(e.deltaY<0?1.08:.92))},{passive:false});
+setZoom(scale);
 function frame(now){if(!last)last=now;if(!paused&&now-last>800){update();last=now;updateUI()}render();requestAnimationFrame(frame)}
 log('Арина собирает ягоды, Борис отправился за древесиной.');updateUI();requestAnimationFrame(frame);
 })();
